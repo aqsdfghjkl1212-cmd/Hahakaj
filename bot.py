@@ -799,30 +799,33 @@ async def set_role(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 class TelegramBot:
     def __init__(self):
-        self.application = Application.builder().token(BOT_TOKEN).build()
-
-        # Handlers
-        self.application.add_handler(CommandHandler("start", start))
-        self.application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text_commands))
-        self.application.add_handler(CommandHandler("myrank", get_my_rank))
-        self.application.add_handler(CommandHandler("otherrank", get_other_rank))
-        self.application.add_handler(CommandHandler("promote", promote_user))
-        self.application.add_handler(CommandHandler("demote", demote_user))
-        self.application.add_handler(CommandHandler("set_role", set_role))
-
-        self.application.add_handler(CallbackQueryHandler(handle_command_query, pattern="^cmd_.*"))
-        self.application.add_handler(CallbackQueryHandler(show_main_commands, pattern="^main_menu$"))
-        self.application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text_commands))
+        self.application = Application.builder().token(BOT_TOKEN).bui        # Handlers
+        self.application.add_handler(CommandHandler("start", self.start))
+        self.application.add_handler(CommandHandler("اوامر", self.show_main_commands))
+        self.application.add_handler(CallbackQueryHandler(self.handle_command_query))
+        self.application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_text_commands))
+        self.application.add_handler(CommandHandler("رتبتي", self.get_my_rank))
+        self.application.add_handler(CommandHandler("رتبته", self.get_other_rank))
+        self.application.add_handler(CommandHandler("رفع", self.promote_user))
+        self.application.add_handler(CommandHandler("تنزيل", self.demote_user))
+        self.application.add_handler(CommandHandler("ضع_رتبه", self.set_role))
 
         # Error handler
-        self.application.add_error_handler(error_handler)
+        self.application.add_error_handler(self.error_handler)
+        # Error handler
+
 
     def run(self):
         # Ensure database and seed data are created when bot starts
         with app.app_context():
             db.create_all()
-            seed_all_d        # For local testing, use polling
+            seed_all_data()
+            seed_all_permissions_data()
+            logger.info("Database seeded successfully.")
+
+        # For local testing, use polling
         self.application.run_polling(allowed_updates=Update.ALL_TYPES)
+
  --- نقطة الدخول الرئيسية ---
 
 if __name__ == "__main__":
