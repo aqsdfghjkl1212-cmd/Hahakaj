@@ -3,7 +3,7 @@ import logging
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters
+from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 from datetime import datetime, timedelta
 
 # إعدادات البوت (تم تضمينها مباشرة بناءً على طلبك)
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 # إعداد تطبيق Flask وقاعدة البيانات
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database/app.db"
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////home/ubuntu/database/app.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SECRET_KEY"] = SECRET_KEY
 db = SQLAlchemy(app)
@@ -32,8 +32,8 @@ class User(db.Model):
     username = db.Column(db.String(255), nullable=True)
     first_name = db.Column(db.String(255), nullable=True)
     last_name = db.Column(db.String(255), nullable=True)
-    role_id = db.Column(db.Integer, db.ForeignKey('role.id'), default=1) # Default to User role
-    role = db.relationship('Role', backref='users')
+    role_id = db.Column(db.Integer, db.ForeignKey("role.id"), default=1) # Default to User role
+    role = db.relationship("Role", backref="users")
 
     def __repr__(self):
         return f"<User {self.telegram_id} ({self.username or self.first_name})>"
@@ -55,11 +55,11 @@ class Permission(db.Model):
         return f"<Permission {self.name}>"
 
 class RolePermission(db.Model):
-    role_id = db.Column(db.Integer, db.ForeignKey('role.id'), primary_key=True)
-    permission_id = db.Column(db.Integer, db.ForeignKey('permission.id'), primary_key=True)
+    role_id = db.Column(db.Integer, db.ForeignKey("role.id"), primary_key=True)
+    permission_id = db.Column(db.Integer, db.ForeignKey("permission.id"), primary_key=True)
 
-    role = db.relationship('Role', backref=db.backref('role_permissions', lazy=True))
-    permission = db.relationship('Permission', backref=db.backref('permission_roles', lazy=True))
+    role = db.relationship("Role", backref=db.backref("role_permissions", lazy=True))
+    permission = db.relationship("Permission", backref=db.backref("permission_roles", lazy=True))
 
     def __repr__(self):
         return f"<Role {self.role_id} - Permission {self.permission_id}>"
@@ -76,25 +76,27 @@ class Command(db.Model):
 # --- وظائف مساعدة للصلاحيات ---
 
 def get_user_role(telegram_id):
-    user = User.query.filter_by(telegram_id=telegram_id).first()
-    if user and user.role:
-        return user.role
-    return Role.query.filter_by(name='User').first() # Default to User role if not found
+    with app.app_context():
+        user = User.query.filter_by(telegram_id=telegram_id).first()
+        if user and user.role:
+            return user.role
+        return Role.query.filter_by(name="User").first() # Default to User role if not found
 
 def has_permission(telegram_id, permission_name):
-    role = get_user_role(telegram_id)
-    if not role:
-        return False
-    
-    # Owner and Dev roles have all permissions
-    if role.name in ['Owner', 'Dev']:
-        return True
+    with app.app_context():
+        role = get_user_role(telegram_id)
+        if not role:
+            return False
+        
+        # Owner and Dev roles have all permissions
+        if role.name in ["Owner", "Dev"]:
+            return True
 
-    permission = Permission.query.filter_by(name=permission_name).first()
-    if not permission:
-        return False
-    
-    return RolePermission.query.filter_by(role_id=role.id, permission_id=permission.id).first() is not None
+        permission = Permission.query.filter_by(name=permission_name).first()
+        if not permission:
+            return False
+        
+        return RolePermission.query.filter_by(role_id=role.id, permission_id=permission.id).first() is not None
 
 def get_role_by_level(level):
     return Role.query.filter_by(level=level).first()
@@ -377,8 +379,8 @@ def seed_all_data():
         ]
 
         for cmd_data in commands_data:
-            if not Command.query.filter_by(name=cmd_data['name']).first():
-                new_command = Command(name=cmd_data['name'], description=cmd_data['description'], content=cmd_data['content'])
+            if not Command.query.filter_by(name=cmd_data["name"]).first():
+                new_command = Command(name=cmd_data["name"], description=cmd_data["description"], content=cmd_data["content"])
                 db.session.add(new_command)
         db.session.commit()
 
@@ -386,90 +388,90 @@ def seed_all_permissions_data():
     with app.app_context():
         # Seed Roles
         roles_data = [
-            {'name': 'User', 'level': 1},
-            {'name': 'Special', 'level': 2},
-            {'name': 'Admin', 'level': 3},
-            {'name': 'Manager', 'level': 4},
-            {'name': 'Creator', 'level': 5},
-            {'name': 'Supervisor', 'level': 6},
-            {'name': 'Owner', 'level': 7},
-            {'name': 'Dev', 'level': 8} # Dev has highest level
+            {"name": "User", "level": 1},
+            {"name": "Special", "level": 2},
+            {"name": "Admin", "level": 3},
+            {"name": "Manager", "level": 4},
+            {"name": "Creator", "level": 5},
+            {"name": "Supervisor", "level": 6},
+            {"name": "Owner", "level": 7},
+            {"name": "Dev", "level": 8} # Dev has highest level
         ]
         for role_data in roles_data:
-            if not Role.query.filter_by(name=role_data['name']).first():
-                new_role = Role(name=role_data['name'], level=role_data['level'])
+            if not Role.query.filter_by(name=role_data["name"]).first():
+                new_role = Role(name=role_data["name"], level=role_data["level"])
                 db.session.add(new_role)
         db.session.commit()
 
         # Seed Permissions
         permissions_data = [
             # Admin Commands
-            {'name': 'admin_commands', 'description': 'Access to admin commands'},
-            {'name': 'manage_ranks', 'description': 'Ability to promote/demote users'},
-            {'name': 'clear_data', 'description': 'Ability to clear various data'},
-            {'name': 'ban_kick_mute', 'description': 'Ability to ban, kick, mute users'},
+            {"name": "admin_commands", "description": "Access to admin commands"},
+            {"name": "manage_ranks", "description": "Ability to promote/demote users"},
+            {"name": "clear_data", "description": "Ability to clear various data"},
+            {"name": "ban_kick_mute", "description": "Ability to ban, kick, mute users"},
 
             # Settings Commands
-            {'name': 'settings_commands', 'description': 'Access to settings commands'},
-            {'name': 'view_settings', 'description': 'Ability to view group settings'},
-            {'name': 'change_settings', 'description': 'Ability to change group settings'},
-            {'name': 'manage_downloads', 'description': 'Ability to manage download features'},
+            {"name": "settings_commands", "description": "Access to settings commands"},
+            {"name": "view_settings", "description": "Ability to view group settings"},
+            {"name": "change_settings", "description": "Ability to change group settings"},
+            {"name": "manage_downloads", "description": "Ability to manage download features"},
 
             # Lock/Unlock Commands
-            {'name': 'lock_unlock_commands', 'description': 'Access to lock/unlock commands'},
-            {'name': 'manage_locks', 'description': 'Ability to lock/unlock various features'},
-            {'name': 'manage_activations', 'description': 'Ability to activate/deactivate features'},
+            {"name": "lock_unlock_commands", "description": "Access to lock/unlock commands"},
+            {"name": "manage_locks", "description": "Ability to lock/unlock various features"},
+            {"name": "manage_activations", "description": "Ability to activate/deactivate features"},
 
             # Entertainment Commands
-            {'name': 'entertainment_commands', 'description': 'Access to entertainment commands'},
-            {'name': 'manage_fun_ranks', 'description': 'Ability to manage fun ranks'},
-            {'name': 'manage_marriage', 'description': 'Ability to manage marriage game'},
-            {'name': 'manage_polls', 'description': 'Ability to manage polls'},
+            {"name": "entertainment_commands", "description": "Access to entertainment commands"},
+            {"name": "manage_fun_ranks", "description": "Ability to manage fun ranks"},
+            {"name": "manage_marriage", "description": "Ability to manage marriage game"},
+            {"name": "manage_polls", "description": "Ability to manage polls"},
 
             # Dev Commands
-            {'name': 'dev_commands', 'description': 'Access to developer commands'},
-            {'name': 'manage_responses', 'description': 'Ability to manage bot responses'},
-            {'name': 'manage_bot_status', 'description': 'Ability to manage bot status (leave, restart)'},
-            {'name': 'manage_global_bans', 'description': 'Ability to manage global bans/mutes'},
-            {'name': 'manage_global_ranks', 'description': 'Ability to manage global ranks'},
-            {'name': 'manage_global_responses', 'description': 'Ability to manage global responses'},
-            {'name': 'manage_features', 'description': 'Ability to add/remove bot features'},
-            {'name': 'manage_games', 'description': 'Ability to manage bot games'},
-            {'name': 'update_bot', 'description': 'Ability to update/restart the bot'},
+            {"name": "dev_commands", "description": "Access to developer commands"},
+            {"name": "manage_responses", "description": "Ability to manage bot responses"},
+            {"name": "manage_bot_status", "description": "Ability to manage bot status (leave, restart)"},
+            {"name": "manage_global_bans", "description": "Ability to manage global bans/mutes"},
+            {"name": "manage_global_ranks", "description": "Ability to manage global ranks"},
+            {"name": "manage_global_responses", "description": "Ability to manage global responses"},
+            {"name": "manage_features", "description": "Ability to add/remove bot features"},
+            {"name": "manage_games", "description": "Ability to manage bot games"},
+            {"name": "update_bot", "description": "Ability to update/restart the bot"},
 
             # General Permissions
-            {'name': 'use_bot', 'description': 'Basic ability to interact with the bot'},
-            {'name': 'view_rank', 'description': 'Ability to view own and others rank'}
+            {"name": "use_bot", "description": "Basic ability to interact with the bot"},
+            {"name": "view_rank", "description": "Ability to view own and others rank"}
         ]
         for perm_data in permissions_data:
-            if not Permission.query.filter_by(name=perm_data['name']).first():
-                new_perm = Permission(name=perm_data['name'], description=perm_data['description'])
+            if not Permission.query.filter_by(name=perm_data["name"]).first():
+                new_perm = Permission(name=perm_data["name"], description=perm_data["description"])
                 db.session.add(new_perm)
         db.session.commit()
 
         # Assign Permissions to Roles
         role_permissions_map = {
-            'User': ['use_bot', 'view_rank'],
-            'Special': ['use_bot', 'view_rank', 'entertainment_commands'],
-            'Admin': ['use_bot', 'view_rank', 'entertainment_commands', 'admin_commands', 'settings_commands', 'lock_unlock_commands'],
-            'Manager': ['use_bot', 'view_rank', 'entertainment_commands', 'admin_commands', 'settings_commands', 'lock_unlock_commands', 'manage_ranks', 'manage_locks'],
-            'Creator': ['use_bot', 'view_rank', 'entertainment_commands', 'admin_commands', 'settings_commands', 'lock_unlock_commands', 'manage_ranks', 'manage_locks', 'manage_activations', 'manage_downloads'],
-            'Supervisor': ['use_bot', 'view_rank', 'entertainment_commands', 'admin_commands', 'settings_commands', 'lock_unlock_commands', 'manage_ranks', 'manage_locks', 'manage_activations', 'manage_downloads', 'clear_data', 'ban_kick_mute', 'change_settings'],
-            'Owner': [
-                'use_bot', 'view_rank', 'entertainment_commands', 'admin_commands', 'settings_commands', 
-                'lock_unlock_commands', 'manage_ranks', 'manage_locks', 'manage_activations', 
-                'manage_downloads', 'clear_data', 'ban_kick_mute', 'change_settings', 'manage_fun_ranks', 
-                'manage_marriage', 'manage_polls', 'manage_responses', 'manage_bot_status', 
-                'manage_global_bans', 'manage_global_ranks', 'manage_global_responses', 
-                'manage_features', 'manage_games', 'update_bot', 'dev_commands' # Owner has all permissions except Dev specific ones
+            "User": ["use_bot", "view_rank"],
+            "Special": ["use_bot", "view_rank", "entertainment_commands"],
+            "Admin": ["use_bot", "view_rank", "entertainment_commands", "admin_commands", "settings_commands", "lock_unlock_commands"],
+            "Manager": ["use_bot", "view_rank", "entertainment_commands", "admin_commands", "settings_commands", "lock_unlock_commands", "manage_ranks", "manage_locks"],
+            "Creator": ["use_bot", "view_rank", "entertainment_commands", "admin_commands", "settings_commands", "lock_unlock_commands", "manage_ranks", "manage_locks", "manage_activations", "manage_downloads"],
+            "Supervisor": ["use_bot", "view_rank", "entertainment_commands", "admin_commands", "settings_commands", "lock_unlock_commands", "manage_ranks", "manage_locks", "manage_activations", "manage_downloads", "clear_data", "ban_kick_mute", "change_settings"],
+            "Owner": [
+                "use_bot", "view_rank", "entertainment_commands", "admin_commands", "settings_commands", 
+                "lock_unlock_commands", "manage_ranks", "manage_locks", "manage_activations", 
+                "manage_downloads", "clear_data", "ban_kick_mute", "change_settings", "manage_fun_ranks", 
+                "manage_marriage", "manage_polls", "manage_responses", "manage_bot_status", 
+                "manage_global_bans", "manage_global_ranks", "manage_global_responses", 
+                "manage_features", "manage_games", "update_bot", "dev_commands" # Owner has all permissions except Dev specific ones
             ],
-            'Dev': [
-                'use_bot', 'view_rank', 'entertainment_commands', 'admin_commands', 'settings_commands', 
-                'lock_unlock_commands', 'manage_ranks', 'manage_locks', 'manage_activations', 
-                'manage_downloads', 'clear_data', 'ban_kick_mute', 'change_settings', 'manage_fun_ranks', 
-                'manage_marriage', 'manage_polls', 'manage_responses', 'manage_bot_status', 
-                'manage_global_bans', 'manage_global_ranks', 'manage_global_responses', 
-                'manage_features', 'manage_games', 'update_bot', 'dev_commands' # Dev has all permissions
+            "Dev": [
+                "use_bot", "view_rank", "entertainment_commands", "admin_commands", "settings_commands", 
+                "lock_unlock_commands", "manage_ranks", "manage_locks", "manage_activations", 
+                "manage_downloads", "clear_data", "ban_kick_mute", "change_settings", "manage_fun_ranks", 
+                "manage_marriage", "manage_polls", "manage_responses", "manage_bot_status", 
+                "manage_global_bans", "manage_global_ranks", "manage_global_responses", 
+                "manage_features", "manage_games", "update_bot", "dev_commands" # Dev has all permissions
             ]
         }
 
@@ -486,17 +488,15 @@ def seed_all_permissions_data():
         # Assign Owner to the initial user
         owner_user = User.query.filter_by(telegram_id=OWNER_USER_ID).first()
         if owner_user:
-            dev_role = Role.query.filter_by(name='Dev').first()
+            dev_role = Role.query.filter_by(name="Dev").first()
             if dev_role:
                 owner_user.role = dev_role
                 db.session.commit()
                 logger.info(f"Assigned Dev role to owner: {owner_user.username or owner_user.first_name}")
-        else:
-            logger.warning(f"Owner user with ID {OWNER_USER_ID} not found during seeding. Please ensure the owner interacts with the bot first.")
 
 # --- وظائف البوت (Telegram Handlers) ---
 
-async def start(update: Update, context: Application.Context) -> None:
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
     username = update.effective_user.username
     first_name = update.effective_user.first_name
@@ -520,9 +520,9 @@ async def start(update: Update, context: Application.Context) -> None:
         "يمكنك كتابة /اوامر لعرض قائمة الأوامر الرئيسية."
     )
 
-async def show_main_commands(update: Update, context: Application.Context) -> None:
+async def show_main_commands(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
-    if not has_permission(user_id, 'use_bot'):
+    if not has_permission(user_id, "use_bot"):
         await update.message.reply_text("عذراً، ليس لديك الصلاحية لاستخدام هذا الأمر.")
         return
 
@@ -548,7 +548,7 @@ async def show_main_commands(update: Update, context: Application.Context) -> No
         reply_markup=reply_markup
     )
 
-async def handle_command_query(update: Update, context: Application.Context) -> None:
+async def handle_command_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     await query.answer()
     user_id = query.from_user.id
@@ -562,11 +562,11 @@ async def handle_command_query(update: Update, context: Application.Context) -> 
 
     # Check permissions based on command category
     permission_map = {
-        'm1': 'admin_commands',
-        'm2': 'settings_commands',
-        'm3': 'lock_unlock_commands',
-        'm4': 'entertainment_commands',
-        'm5': 'dev_commands',
+        "m1": "admin_commands",
+        "m2": "settings_commands",
+        "m3": "lock_unlock_commands",
+        "m4": "entertainment_commands",
+        "m5": "dev_commands",
     }
     required_permission = permission_map.get(command_name)
 
@@ -578,9 +578,7 @@ async def handle_command_query(update: Update, context: Application.Context) -> 
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await query.edit_message_text(command_entry.content, reply_markup=reply_markup)
-
-async def handle_text_commands(update: Update, context: Application.Context) -> None:
-    user_id = update.effective_user.id
+async def handle_text_commands(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     text = update.message.text.strip()
 
     if text.lower() == "اوامر":
@@ -591,11 +589,11 @@ async def handle_text_commands(update: Update, context: Application.Context) -> 
     if command_entry:
         # Check permissions based on command category
         permission_map = {
-            'm1': 'admin_commands',
-            'm2': 'settings_commands',
-            'm3': 'lock_unlock_commands',
-            'm4': 'entertainment_commands',
-            'm5': 'dev_commands',
+            "m1": "admin_commands",
+            "m2": "settings_commands",
+            "m3": "lock_unlock_commands",
+            "m4": "entertainment_commands",
+            "m5": "dev_commands",
         }
         required_permission = permission_map.get(text.lower())
 
@@ -609,11 +607,11 @@ async def handle_text_commands(update: Update, context: Application.Context) -> 
     # If it's not a recognized command, do nothing (silent bot)
     # await update.message.reply_text("عذراً، لا أفهم هذا الأمر. يرجى استخدام /اوامر أو الأوامر المحددة.")
 
-async def get_my_rank(update: Update, context: Application.Context) -> None:
+async def get_my_rank(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
     user_info = update.effective_user
 
-    if not has_permission(user_id, 'view_rank'):
+    if not has_permission(user_id, "view_rank"):
         await update.message.reply_text("عذراً، ليس لديك الصلاحية لعرض الرتب.")
         return
 
@@ -622,7 +620,7 @@ async def get_my_rank(update: Update, context: Application.Context) -> None:
         user = User(telegram_id=user_id, username=user_info.username, first_name=user_info.first_name, last_name=user_info.last_name)
         db.session.add(user)
         db.session.commit()
-        user_role = Role.query.filter_by(name='User').first()
+        user_role = Role.query.filter_by(name="User").first()
     else:
         user_role = user.role
 
@@ -636,10 +634,10 @@ async def get_my_rank(update: Update, context: Application.Context) -> None:
         f"الرتبة: {role_name}{is_owner}"
     )
 
-async def get_other_rank(update: Update, context: Application.Context) -> None:
+async def get_other_rank(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
 
-    if not has_permission(user_id, 'view_rank'):
+    if not has_permission(user_id, "view_rank"):
         await update.message.reply_text("عذراً، ليس لديك الصلاحية لعرض الرتب.")
         return
 
@@ -669,16 +667,18 @@ async def get_other_rank(update: Update, context: Application.Context) -> None:
         f"الرتبة: {target_role_name}{is_owner}"
     )
 
-async def error_handler(update: Update, context: Application.Context) -> None:
+async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     logger.error(f"حدث خطأ: {context.error}", exc_info=context.error)
-    if update.effective_message:
+    if update and update.effective_message:
         await update.effective_message.reply_text("عذراً، حدث خطأ ما. يرجى المحاولة مرة أخرى لاحقاً.")
+    else:
+        logger.error("حدث خطأ غير متوقع ولم يتمكن البوت من إرسال رسالة للمستخدم.")
 
 # --- وظائف الإدارة (Admin Commands) ---
 
-async def promote_user(update: Update, context: Application.Context) -> None:
+async def promote_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
-    if not has_permission(user_id, 'manage_ranks'):
+    if not has_permission(user_id, "manage_ranks"):
         await update.message.reply_text("عذراً، ليس لديك الصلاحية لترقية الرتب.")
         return
 
@@ -716,9 +716,9 @@ async def promote_user(update: Update, context: Application.Context) -> None:
     db.session.commit()
     await update.message.reply_text(f"تم ترقية {target_first_name} إلى رتبة {next_role.name} بنجاح.")
 
-async def demote_user(update: Update, context: Application.Context) -> None:
+async def demote_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
-    if not has_permission(user_id, 'manage_ranks'):
+    if not has_permission(user_id, "manage_ranks"):
         await update.message.reply_text("عذراً، ليس لديك الصلاحية لتنزيل الرتب.")
         return
 
@@ -756,9 +756,9 @@ async def demote_user(update: Update, context: Application.Context) -> None:
     db.session.commit()
     await update.message.reply_text(f"تم تنزيل {target_first_name} إلى رتبة {previous_role.name} بنجاح.")
 
-async def set_role(update: Update, context: Application.Context) -> None:
+async def set_role(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
-    if not has_permission(user_id, 'manage_ranks'):
+    if not has_permission(user_id, "manage_ranks"):
         await update.message.reply_text("عذراً، ليس لديك الصلاحية لتعيين الرتب.")
         return
 
@@ -803,9 +803,9 @@ class TelegramBot:
 
         # Handlers
         self.application.add_handler(CommandHandler("start", start))
-        self.application.add_handler(CommandHandler("اوامر", show_main_commands))
-        self.application.add_handler(CommandHandler("رتبتي", get_my_rank))
-        self.application.add_handler(CommandHandler("رتبته", get_other_rank))
+        self.application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text_commands))
+        self.application.add_handler(CommandHandler("myrank", get_my_rank))
+        self.application.add_handler(CommandHandler("otherrank", get_other_rank))
         self.application.add_handler(CommandHandler("promote", promote_user))
         self.application.add_handler(CommandHandler("demote", demote_user))
         self.application.add_handler(CommandHandler("set_role", set_role))
@@ -821,19 +821,13 @@ class TelegramBot:
         # Ensure database and seed data are created when bot starts
         with app.app_context():
             db.create_all()
-            seed_all_permissions_data()
-            seed_all_data()
-            logger.info("Database seeded successfully.")
-
-        # For local testing, use polling
-        logger.info("تشغيل البوت باستخدام Polling...")
+            seed_all_d        # For local testing, use polling
         self.application.run_polling(allowed_updates=Update.ALL_TYPES)
-
-# --- نقطة الدخول الرئيسية ---
+ --- نقطة الدخول الرئيسية ---
 
 if __name__ == "__main__":
     # Create database directory if it doesn't exist
-    os.makedirs('database', exist_ok=True)
+    os.makedirs("database", exist_ok=True)
 
     # Initialize and run the bot
     bot = TelegramBot()
