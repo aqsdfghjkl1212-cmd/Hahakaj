@@ -1,30 +1,30 @@
 import os
 import logging
-from flask import Flask, request, jsonify
+from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 from datetime import datetime, timedelta
 
-# إعدادات البوت (تم تضمينها مباشرة بناءً على طلبك)
+# Bot settings (hardcoded as per your request)
 BOT_TOKEN = "8069419306:AAEWY3K3kvanMqAKrQegyh9gKOHM_orFO20"
 OWNER_USER_ID = 5032833915
-SECRET_KEY = "your_super_secret_key_here" # يمكنك تغيير هذا المفتاح السري
+SECRET_KEY = "your_super_secret_key_here"  # You can change this secret key
 
-# إعداد التسجيل (Logging)
+# Logging setup
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
-# إعداد تطبيق Flask وقاعدة البيانات
+# Flask app and database setup
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////home/ubuntu/database/app.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SECRET_KEY"] = SECRET_KEY
 db = SQLAlchemy(app)
 
-# --- نماذج قاعدة البيانات ---
+# --- Database Models ---
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -32,7 +32,7 @@ class User(db.Model):
     username = db.Column(db.String(255), nullable=True)
     first_name = db.Column(db.String(255), nullable=True)
     last_name = db.Column(db.String(255), nullable=True)
-    role_id = db.Column(db.Integer, db.ForeignKey("role.id"), default=1) # Default to User role
+    role_id = db.Column(db.Integer, db.ForeignKey("role.id"), default=1)  # Default to User role
     role = db.relationship("Role", backref="users")
 
     def __repr__(self):
@@ -73,14 +73,14 @@ class Command(db.Model):
     def __repr__(self):
         return f"<Command {self.name}>"
 
-# --- وظائف مساعدة للصلاحيات ---
+# --- Helper Functions for Permissions ---
 
 def get_user_role(telegram_id):
     with app.app_context():
         user = User.query.filter_by(telegram_id=telegram_id).first()
         if user and user.role:
             return user.role
-        return Role.query.filter_by(name="User").first() # Default to User role if not found
+        return Role.query.filter_by(name="User").first()  # Default to User role if not found
 
 def has_permission(telegram_id, permission_name):
     with app.app_context():
@@ -104,7 +104,7 @@ def get_role_by_level(level):
 def get_role_by_name(name):
     return Role.query.filter_by(name=name).first()
 
-# --- تعبئة البيانات الأولية (Roles, Permissions, Commands) ---
+# --- Initial Data Seeding (Roles, Permissions, Commands) ---
 
 def seed_all_data():
     with app.app_context():
@@ -395,7 +395,7 @@ def seed_all_permissions_data():
             {"name": "Creator", "level": 5},
             {"name": "Supervisor", "level": 6},
             {"name": "Owner", "level": 7},
-            {"name": "Dev", "level": 8} # Dev has highest level
+            {"name": "Dev", "level": 8}  # Dev has highest level
         ]
         for role_data in roles_data:
             if not Role.query.filter_by(name=role_data["name"]).first():
@@ -458,20 +458,20 @@ def seed_all_permissions_data():
             "Creator": ["use_bot", "view_rank", "entertainment_commands", "admin_commands", "settings_commands", "lock_unlock_commands", "manage_ranks", "manage_locks", "manage_activations", "manage_downloads"],
             "Supervisor": ["use_bot", "view_rank", "entertainment_commands", "admin_commands", "settings_commands", "lock_unlock_commands", "manage_ranks", "manage_locks", "manage_activations", "manage_downloads", "clear_data", "ban_kick_mute", "change_settings"],
             "Owner": [
-                "use_bot", "view_rank", "entertainment_commands", "admin_commands", "settings_commands", 
-                "lock_unlock_commands", "manage_ranks", "manage_locks", "manage_activations", 
-                "manage_downloads", "clear_data", "ban_kick_mute", "change_settings", "manage_fun_ranks", 
-                "manage_marriage", "manage_polls", "manage_responses", "manage_bot_status", 
-                "manage_global_bans", "manage_global_ranks", "manage_global_responses", 
-                "manage_features", "manage_games", "update_bot", "dev_commands" # Owner has all permissions except Dev specific ones
+                "use_bot", "view_rank", "entertainment_commands", "admin_commands", "settings_commands",
+                "lock_unlock_commands", "manage_ranks", "manage_locks", "manage_activations",
+                "manage_downloads", "clear_data", "ban_kick_mute", "change_settings", "manage_fun_ranks",
+                "manage_marriage", "manage_polls", "manage_responses", "manage_bot_status",
+                "manage_global_bans", "manage_global_ranks", "manage_global_responses",
+                "manage_features", "manage_games", "update_bot", "dev_commands"  # Owner has all permissions except Dev specific ones
             ],
             "Dev": [
-                "use_bot", "view_rank", "entertainment_commands", "admin_commands", "settings_commands", 
-                "lock_unlock_commands", "manage_ranks", "manage_locks", "manage_activations", 
-                "manage_downloads", "clear_data", "ban_kick_mute", "change_settings", "manage_fun_ranks", 
-                "manage_marriage", "manage_polls", "manage_responses", "manage_bot_status", 
-                "manage_global_bans", "manage_global_ranks", "manage_global_responses", 
-                "manage_features", "manage_games", "update_bot", "dev_commands" # Dev has all permissions
+                "use_bot", "view_rank", "entertainment_commands", "admin_commands", "settings_commands",
+                "lock_unlock_commands", "manage_ranks", "manage_locks", "manage_activations",
+                "manage_downloads", "clear_data", "ban_kick_mute", "change_settings", "manage_fun_ranks",
+                "manage_marriage", "manage_polls", "manage_responses", "manage_bot_status",
+                "manage_global_bans", "manage_global_ranks", "manage_global_responses",
+                "manage_features", "manage_games", "update_bot", "dev_commands"  # Dev has all permissions
             ]
         }
 
@@ -493,8 +493,18 @@ def seed_all_permissions_data():
                 owner_user.role = dev_role
                 db.session.commit()
                 logger.info(f"Assigned Dev role to owner: {owner_user.username or owner_user.first_name}")
+        else:
+             # Create the owner user if they don't exist
+            owner_user = User(telegram_id=OWNER_USER_ID, first_name="Owner")
+            dev_role = Role.query.filter_by(name="Dev").first()
+            if dev_role:
+                owner_user.role = dev_role
+            db.session.add(owner_user)
+            db.session.commit()
+            logger.info(f"Created and assigned Dev role to owner: {OWNER_USER_ID}")
 
-# --- وظائف البوت (Telegram Handlers) ---
+
+# --- Bot Functions (Telegram Handlers) ---
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
@@ -502,21 +512,22 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     first_name = update.effective_user.first_name
     last_name = update.effective_user.last_name
 
-    user = User.query.filter_by(telegram_id=user_id).first()
-    if not user:
-        user = User(telegram_id=user_id, username=username, first_name=first_name, last_name=last_name)
-        db.session.add(user)
-        db.session.commit()
-        logger.info(f"New user added: {user_id}")
-    else:
-        # Update user info in case it changed
-        user.username = username
-        user.first_name = first_name
-        user.last_name = last_name
-        db.session.commit()
+    with app.app_context():
+        user = User.query.filter_by(telegram_id=user_id).first()
+        if not user:
+            user = User(telegram_id=user_id, username=username, first_name=first_name, last_name=last_name)
+            db.session.add(user)
+            db.session.commit()
+            logger.info(f"New user added: {user_id}")
+        else:
+            # Update user info in case it changed
+            user.username = username
+            user.first_name = first_name
+            user.last_name = last_name
+            db.session.commit()
 
     await update.message.reply_text(
-        f"أهلاً بك عزيزي {first_name or username} في بوت الأوامر!\n" 
+        f"أهلاً بك عزيزي {first_name or username} في بوت الأوامر!\n"
         "يمكنك كتابة /اوامر لعرض قائمة الأوامر الرئيسية."
     )
 
@@ -532,18 +543,17 @@ async def show_main_commands(update: Update, context: ContextTypes.DEFAULT_TYPE)
         [InlineKeyboardButton("م3: اوامر القفل - الفتح", callback_data="cmd_m3")],
         [InlineKeyboardButton("م4: اوامر التسليه", callback_data="cmd_m4")],
         [InlineKeyboardButton("م5: اوامر Dev", callback_data="cmd_m5")],
-        [InlineKeyboardButton("🔙 العودة للقائمة الرئيسية", callback_data="main_menu")] # This button is for consistency, it will just re-show the main menu
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await update.message.reply_text(
-        "أهلاً بك عزيزي في قائمة الاوامر :\n" 
-        "━━━━━━━━━━━━\n" 
-        "◂ م1 : اوامر الادمنيه\n" 
-        "◂ م2 : اوامر الاعدادات\n" 
-        "◂ م3 : اوامر القفل - الفتح\n" 
-        "◂ م4 : اوامر التسليه\n" 
-        "◂ م5 : اوامر Dev\n" 
+        "أهلاً بك عزيزي في قائمة الاوامر :\n"
+        "━━━━━━━━━━━━\n"
+        "◂ م1 : اوامر الادمنيه\n"
+        "◂ م2 : اوامر الاعدادات\n"
+        "◂ م3 : اوامر القفل - الفتح\n"
+        "◂ م4 : اوامر التسليه\n"
+        "◂ م5 : اوامر Dev\n"
         "━━━━━━━━━━━━",
         reply_markup=reply_markup
     )
@@ -552,9 +562,16 @@ async def handle_command_query(update: Update, context: ContextTypes.DEFAULT_TYP
     query = update.callback_query
     await query.answer()
     user_id = query.from_user.id
+    
+    # Handle the "main_menu" button to return to the main menu
+    if query.data == "main_menu":
+        await show_main_commands(update, context)
+        return
 
     command_name = query.data.replace("cmd_", "")
-    command_entry = Command.query.filter_by(name=command_name).first()
+    
+    with app.app_context():
+        command_entry = Command.query.filter_by(name=command_name).first()
 
     if not command_entry:
         await query.edit_message_text("عذراً، هذا الأمر غير موجود.")
@@ -569,7 +586,8 @@ async def handle_command_query(update: Update, context: ContextTypes.DEFAULT_TYP
         "m5": "dev_commands",
     }
     required_permission = permission_map.get(command_name)
-
+    user_id = update.effective_user.id
+    
     if required_permission and not has_permission(user_id, required_permission):
         await query.edit_message_text("عذراً، ليس لديك الصلاحية لعرض أوامر هذه الفئة.")
         return
@@ -578,16 +596,20 @@ async def handle_command_query(update: Update, context: ContextTypes.DEFAULT_TYP
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await query.edit_message_text(command_entry.content, reply_markup=reply_markup)
+
 async def handle_text_commands(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     text = update.message.text.strip()
+    user_id = update.effective_user.id
 
+    # Check for specific text commands
     if text.lower() == "اوامر":
         await show_main_commands(update, context)
         return
-    
-    command_entry = Command.query.filter_by(name=text.lower()).first()
+
+    with app.app_context():
+        command_entry = Command.query.filter_by(name=text.lower()).first()
+
     if command_entry:
-        # Check permissions based on command category
         permission_map = {
             "m1": "admin_commands",
             "m2": "settings_commands",
@@ -596,16 +618,37 @@ async def handle_text_commands(update: Update, context: ContextTypes.DEFAULT_TYP
             "m5": "dev_commands",
         }
         required_permission = permission_map.get(text.lower())
-
+        
         if required_permission and not has_permission(user_id, required_permission):
             await update.message.reply_text("عذراً، ليس لديك الصلاحية لعرض أوامر هذه الفئة.")
             return
 
         await update.message.reply_text(command_entry.content)
         return
+    
+    # If it's a known command but doesn't exist in the database, do nothing
+    # If the text is not a recognized command, the bot remains silent due to the filter
+    
+    # Check for other text-based commands that are not in the database
+    if text.lower() == "رتبتي":
+        await get_my_rank(update, context)
+        return
 
-    # If it's not a recognized command, do nothing (silent bot)
-    # await update.message.reply_text("عذراً، لا أفهم هذا الأمر. يرجى استخدام /اوامر أو الأوامر المحددة.")
+    if text.lower() == "رتبته":
+        await get_other_rank(update, context)
+        return
+        
+    if text.lower() == "رفع":
+        await promote_user(update, context)
+        return
+        
+    if text.lower() == "تنزيل":
+        await demote_user(update, context)
+        return
+
+    if text.lower().startswith("ضع_رتبه"):
+        # This is a command with arguments, let the handler take over
+        pass
 
 async def get_my_rank(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
@@ -615,14 +658,15 @@ async def get_my_rank(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         await update.message.reply_text("عذراً، ليس لديك الصلاحية لعرض الرتب.")
         return
 
-    user = User.query.filter_by(telegram_id=user_id).first()
-    if not user:
-        user = User(telegram_id=user_id, username=user_info.username, first_name=user_info.first_name, last_name=user_info.last_name)
-        db.session.add(user)
-        db.session.commit()
-        user_role = Role.query.filter_by(name="User").first()
-    else:
-        user_role = user.role
+    with app.app_context():
+        user = User.query.filter_by(telegram_id=user_id).first()
+        if not user:
+            user = User(telegram_id=user_id, username=user_info.username, first_name=user_info.first_name, last_name=user_info.last_name)
+            db.session.add(user)
+            db.session.commit()
+            user_role = Role.query.filter_by(name="User").first()
+        else:
+            user_role = user.role
 
     role_name = user_role.name if user_role else "User"
     is_owner = " (مالك البوت الأساسي)" if user_id == OWNER_USER_ID else ""
@@ -649,7 +693,8 @@ async def get_other_rank(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     target_username = update.message.reply_to_message.from_user.username
     target_first_name = update.message.reply_to_message.from_user.first_name
 
-    target_user = User.query.filter_by(telegram_id=target_user_id).first()
+    with app.app_context():
+        target_user = User.query.filter_by(telegram_id=target_user_id).first()
 
     if not target_user:
         await update.message.reply_text(
@@ -674,7 +719,7 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     else:
         logger.error("حدث خطأ غير متوقع ولم يتمكن البوت من إرسال رسالة للمستخدم.")
 
-# --- وظائف الإدارة (Admin Commands) ---
+# --- Administration Functions (Admin Commands) ---
 
 async def promote_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
@@ -693,27 +738,29 @@ async def promote_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         await update.message.reply_text("لا يمكنك ترقية مالك البوت الأساسي.")
         return
 
-    target_user = User.query.filter_by(telegram_id=target_user_id).first()
-    if not target_user:
-        await update.message.reply_text("المستخدم غير مسجل في البوت. يرجى الطلب منه التفاعل مع البوت أولاً.")
-        return
-
-    current_role_level = target_user.role.level if target_user.role else 1
-    next_role = get_role_by_level(current_role_level + 1)
-
-    if not next_role:
-        await update.message.reply_text(f"المستخدم {target_first_name} لديه أعلى رتبة ممكنة بالفعل.")
-        return
-    
-    # Prevent promoting above your own level unless you are the owner
-    if user_id != OWNER_USER_ID:
-        promoter_role = get_user_role(user_id)
-        if promoter_role.level <= next_role.level:
-            await update.message.reply_text("لا يمكنك ترقية مستخدم إلى رتبة أعلى من رتبتك أو مساوية لها.")
+    with app.app_context():
+        target_user = User.query.filter_by(telegram_id=target_user_id).first()
+        if not target_user:
+            await update.message.reply_text("المستخدم غير مسجل في البوت. يرجى الطلب منه التفاعل مع البوت أولاً.")
             return
 
-    target_user.role = next_role
-    db.session.commit()
+        current_role_level = target_user.role.level if target_user.role else 1
+        next_role = get_role_by_level(current_role_level + 1)
+
+        if not next_role:
+            await update.message.reply_text(f"المستخدم {target_first_name} لديه أعلى رتبة ممكنة بالفعل.")
+            return
+        
+        # Prevent promoting above your own level unless you are the owner
+        if user_id != OWNER_USER_ID:
+            promoter_role = get_user_role(user_id)
+            if promoter_role.level <= next_role.level:
+                await update.message.reply_text("لا يمكنك ترقية مستخدم إلى رتبة أعلى من رتبتك أو مساوية لها.")
+                return
+
+        target_user.role = next_role
+        db.session.commit()
+
     await update.message.reply_text(f"تم ترقية {target_first_name} إلى رتبة {next_role.name} بنجاح.")
 
 async def demote_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -733,27 +780,29 @@ async def demote_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         await update.message.reply_text("لا يمكنك تنزيل مالك البوت الأساسي.")
         return
 
-    target_user = User.query.filter_by(telegram_id=target_user_id).first()
-    if not target_user:
-        await update.message.reply_text("المستخدم غير مسجل في البوت. يرجى الطلب منه التفاعل مع البوت أولاً.")
-        return
-
-    current_role_level = target_user.role.level if target_user.role else 1
-    previous_role = get_role_by_level(current_role_level - 1)
-
-    if not previous_role:
-        await update.message.reply_text(f"المستخدم {target_first_name} لديه أدنى رتبة ممكنة بالفعل.")
-        return
-
-    # Prevent demoting below your own level unless you are the owner
-    if user_id != OWNER_USER_ID:
-        demoter_role = get_user_role(user_id)
-        if demoter_role.level <= previous_role.level:
-            await update.message.reply_text("لا يمكنك تنزيل مستخدم إلى رتبة أدنى من رتبتك أو مساوية لها.")
+    with app.app_context():
+        target_user = User.query.filter_by(telegram_id=target_user_id).first()
+        if not target_user:
+            await update.message.reply_text("المستخدم غير مسجل في البوت. يرجى الطلب منه التفاعل مع البوت أولاً.")
             return
 
-    target_user.role = previous_role
-    db.session.commit()
+        current_role_level = target_user.role.level if target_user.role else 1
+        previous_role = get_role_by_level(current_role_level - 1)
+
+        if not previous_role:
+            await update.message.reply_text(f"المستخدم {target_first_name} لديه أدنى رتبة ممكنة بالفعل.")
+            return
+
+        # Prevent demoting below your own level unless you are the owner
+        if user_id != OWNER_USER_ID:
+            demoter_role = get_user_role(user_id)
+            if demoter_role.level <= previous_role.level:
+                await update.message.reply_text("لا يمكنك تنزيل مستخدم إلى رتبة أدنى من رتبتك أو مساوية لها.")
+                return
+
+        target_user.role = previous_role
+        db.session.commit()
+
     await update.message.reply_text(f"تم تنزيل {target_first_name} إلى رتبة {previous_role.name} بنجاح.")
 
 async def set_role(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -768,52 +817,62 @@ async def set_role(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     target_user_id = update.message.reply_to_message.from_user.id
     target_first_name = update.message.reply_to_message.from_user.first_name
-    new_role_name = context.args[0].capitalize() # Capitalize first letter for role name
+    new_role_name = context.args[0].capitalize()  # Capitalize first letter for role name
 
     if target_user_id == OWNER_USER_ID and user_id != OWNER_USER_ID:
         await update.message.reply_text("لا يمكنك تغيير رتبة مالك البوت الأساسي.")
         return
 
-    target_user = User.query.filter_by(telegram_id=target_user_id).first()
-    if not target_user:
-        await update.message.reply_text("المستخدم غير مسجل في البوت. يرجى الطلب منه التفاعل مع البوت أولاً.")
-        return
-
-    new_role = get_role_by_name(new_role_name)
-    if not new_role:
-        await update.message.reply_text(f"الرتبة '{new_role_name}' غير موجودة. الرتب المتاحة: User, Special, Admin, Manager, Creator, Supervisor, Owner, Dev.")
-        return
-    
-    # Prevent setting role above your own level unless you are the owner
-    if user_id != OWNER_USER_ID:
-        setter_role = get_user_role(user_id)
-        if setter_role.level <= new_role.level and new_role.name != target_user.role.name:
-            await update.message.reply_text("لا يمكنك تعيين رتبة أعلى من رتبتك أو مساوية لها.")
+    with app.app_context():
+        target_user = User.query.filter_by(telegram_id=target_user_id).first()
+        if not target_user:
+            await update.message.reply_text("المستخدم غير مسجل في البوت. يرجى الطلب منه التفاعل مع البوت أولاً.")
             return
 
-    target_user.role = new_role
-    db.session.commit()
+        new_role = get_role_by_name(new_role_name)
+        if not new_role:
+            await update.message.reply_text(f"الرتبة '{new_role_name}' غير موجودة. الرتب المتاحة: User, Special, Admin, Manager, Creator, Supervisor, Owner, Dev.")
+            return
+        
+        # Prevent setting role above your own level unless you are the owner
+        if user_id != OWNER_USER_ID:
+            setter_role = get_user_role(user_id)
+            if setter_role.level <= new_role.level and new_role.name != target_user.role.name:
+                await update.message.reply_text("لا يمكنك تعيين رتبة أعلى من رتبتك أو مساوية لها.")
+                return
+
+        target_user.role = new_role
+        db.session.commit()
+
     await update.message.reply_text(f"تم تعيين رتبة {new_role.name} للمستخدم {target_first_name} بنجاح.")
 
-# --- وظيفة تشغيل البوت ---
+# --- Bot Runner Class ---
 
 class TelegramBot:
     def __init__(self):
-        self.application = Application.builder().token(BOT_TOKEN).bui        # Handlers
-        self.application.add_handler(CommandHandler("start", self.start))
-        self.application.add_handler(CommandHandler("اوامر", self.show_main_commands))
-        self.application.add_handler(CallbackQueryHandler(self.handle_command_query))
-        self.application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_text_commands))
-        self.application.add_handler(CommandHandler("رتبتي", self.get_my_rank))
-        self.application.add_handler(CommandHandler("رتبته", self.get_other_rank))
-        self.application.add_handler(CommandHandler("رفع", self.promote_user))
-        self.application.add_handler(CommandHandler("تنزيل", self.demote_user))
-        self.application.add_handler(CommandHandler("ضع_رتبه", self.set_role))
+        self.application = Application.builder().token(BOT_TOKEN).build()
+        
+        # Handlers for bot commands (starting with '/')
+        self.application.add_handler(CommandHandler("start", start))
+        self.application.add_handler(CommandHandler("اوامر", show_main_commands))
+        self.application.add_handler(CommandHandler("رتبتي", get_my_rank))
+        self.application.add_handler(CommandHandler("رتبته", get_other_rank))
+        self.application.add_handler(CommandHandler("رفع", promote_user))
+        self.application.add_handler(CommandHandler("تنزيل", demote_user))
+        self.application.add_handler(CommandHandler("ضع_رتبه", set_role))
+
+        # Handler for inline keyboard button clicks
+        self.application.add_handler(CallbackQueryHandler(handle_command_query))
+
+        # Handler for specific text messages that are not commands
+        # The regex ensures the bot only responds to these exact texts
+        self.application.add_handler(MessageHandler(
+            filters.TEXT & ~filters.COMMAND & filters.Regex(r'^(م1|م2|م3|م4|م5|اوامر|رتبتي|رتبته|رفع|تنزيل|ضع_رتبه)$'),
+            handle_text_commands
+        ))
 
         # Error handler
-        self.application.add_error_handler(self.error_handler)
-        # Error handler
-
+        self.application.add_error_handler(error_handler)
 
     def run(self):
         # Ensure database and seed data are created when bot starts
@@ -826,7 +885,7 @@ class TelegramBot:
         # For local testing, use polling
         self.application.run_polling(allowed_updates=Update.ALL_TYPES)
 
- --- نقطة الدخول الرئيسية ---
+# --- Main Entry Point ---
 
 if __name__ == "__main__":
     # Create database directory if it doesn't exist
@@ -835,3 +894,4 @@ if __name__ == "__main__":
     # Initialize and run the bot
     bot = TelegramBot()
     bot.run()
+
