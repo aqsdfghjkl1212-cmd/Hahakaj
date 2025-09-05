@@ -259,9 +259,8 @@ application.add_handler(CallbackQueryHandler(handle_command_query, pattern="^cmd
 application.add_handler(CallbackQueryHandler(show_main_commands, pattern="^main_menu$"))
 
 # Arabic commands using Regex
-application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & filters.Regex(r'^(اوامر|رتبتي|رتبته|رفع|تنزيل)', re.I), handle_text_commands))
+application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & filters.Regex(r'^(اوامر|رتبتي|رتبته|رفع|تنزيل)', flags=re.IGNORECASE), handle_text_commands))
 application.add_error_handler(error_handler)
-
 @app.route(f"/{SECRET_KEY}", methods=["POST"])
 def webhook_handler():
     if request.method == "POST":
