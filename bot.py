@@ -9,7 +9,7 @@ import re
 # Load environment variables from .env file if it exists
 load_dotenv()
 
-# Bot settings (hardcoded values for simplicity)
+# Bot settings
 BOT_TOKEN = "8069419306:AAFbTMN4BbQ2zIInV_ddJ_WO8jESmaDAsIA"
 OWNER_USER_ID = 5032833915
 SECRET_KEY = os.getenv("SECRET_KEY", "your_super_secret_key_here")
