@@ -3,16 +3,11 @@ import logging
 from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
-from dotenv import load_dotenv
 import re
 
-# Load environment variables from .env file if it exists
-load_dotenv()
-
 # Bot settings
-BOT_TOKEN = "8069419306:AAFbTMN4BbQ2zIInV_ddJ_WO8jESmaDAsIA"
-OWNER_USER_ID = 5032833915
-SECRET_KEY = os.getenv("SECRET_KEY", "your_super_secret_key_here")
+BOT_TOKEN = "8069419306:AAFbTMN4BbQ2zIInV_ddJ_WO8jESmaDAsIA"  # ضع التوكن هنا مباشرة
+SECRET_KEY = "your_super_secret_key_here"  # وضع المفتاح السري هنا
 
 # Configure logging
 logging.basicConfig(
@@ -25,8 +20,6 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = SECRET_KEY
 
 # --- In-memory storage (no database) ---
-# Note: all data will be lost on bot restart
-
 # Define roles and permissions
 ROLES = {
     "User": {"level": 1},
@@ -50,67 +43,57 @@ PERMISSIONS = {
 }
 
 USERS_DATA = {
-    OWNER_USER_ID: {"role": "Dev", "first_name": "Owner", "last_name": None, "username": None}
+    5032833915: {"role": "Dev", "first_name": "Owner", "last_name": None, "username": None}  # معرف المالك
 }
 
-# Command content in Arabic
 COMMANDS_CONTENT = {
     "admin": """
-• مرحبًا بك، قائمة أوامر الإدارة:
-
-• أوامر الرفع والتنزيل:
-... (بقية المحتوى) ...
-""",
+    • مرحبًا بك، قائمة أوامر الإدارة:
+    ... (بقية المحتوى) ...
+    """,
     "settings": """
-مرحبًا بك في قائمة أوامر الإعدادات:
-... (بقية المحتوى) ...
-""",
+    مرحبًا بك في قائمة أوامر الإعدادات:
+    ... (بقية المحتوى) ...
+    """,
     "lock_unlock": """
-مرحبًا بك في قائمة القفل/الفتح:
-... (بقية المحتوى) ...
-""",
+    مرحبًا بك في قائمة القفل/الفتح:
+    ... (بقية المحتوى) ...
+    """,
     "entertainment": """
-• مرحبًا أيها المستخدم العزيز!
-- أوامر التسلية:
-... (بقية المحتوى) ...
-""",
+    • مرحبًا أيها المستخدم العزيز!
+    - أوامر التسلية:
+    ... (بقية المحتوى) ...
+    """,
     "dev": """
-مرحباً أيها المطور العزيز!
-... (بقية المحتوى) ...
-"""
+    مرحباً أيها المطور العزيز!
+    ... (بقية المحتوى) ...
+    """
 }
 
 # --- Helper functions for permissions ---
-
 def get_user_role_name(user_id):
-    """Get a user's role name."""
     return USERS_DATA.get(user_id, {}).get("role", "User")
 
 def has_permission(user_id, permission_name):
-    """Check if a user has a specific permission."""
     role_name = get_user_role_name(user_id)
     if role_name in ["Dev", "Owner"]:
         return True
     return role_name in PERMISSIONS.get(permission_name, {}).get("roles", [])
 
 def get_user_level(user_id):
-    """Get a user's role level."""
     role_name = get_user_role_name(user_id)
     return ROLES.get(role_name, {}).get("level", 1)
 
 def get_role_by_level(level):
-    """Get a role name from a level."""
     for role, data in ROLES.items():
         if data["level"] == level:
             return role
     return "User"
 
 def get_role_by_name(name):
-    """Get a role level from a name."""
     return ROLES.get(name, {}).get("level")
 
 # --- Bot functions (Telegram Handlers) ---
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = update.effective_user
     user_id = user.id
@@ -265,7 +248,6 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     logger.error(f"An error occurred: {context.error}", exc_info=context.error)
 
 # --- Webhook setup and startup ---
-
 application = Application.builder().token(BOT_TOKEN).build()
 
 # Standard English commands
@@ -277,7 +259,7 @@ application.add_handler(CallbackQueryHandler(handle_command_query, pattern="^cmd
 application.add_handler(CallbackQueryHandler(show_main_commands, pattern="^main_menu$"))
 
 # Arabic commands using Regex
-application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & filters.Regex(r'^(اوامر|رتبتي|رتبته|رفع|تنزيل)', flags=re.IGNORECASE), handle_text_commands))
+application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & filters.Regex(r'^(اوامر|رتبتي|رتبته|رفع|تنزيل)', re.IGNORECASE), handle_text_commands))
 application.add_error_handler(error_handler)
 
 @app.route(f"/{SECRET_KEY}", methods=["POST"])
