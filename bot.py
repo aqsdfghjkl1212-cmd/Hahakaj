@@ -537,19 +537,19 @@ def seed_all_permissions_data():
 
         await update.message.reply_text("أهلاً بك عزيزي في قائمة الأوامر:", reply_markup=reply_markup)
 
-        await update.message.reply_text(
-            "أهلاً بك عزيزي في قائمة الاوامر :\n" 
-            "━━━━━━━━━━━━\n" 
-            "◂ م1 : اوامر الادمنيه\n" 
-            "◂ م2 : اوامر الاعدادات\n" 
-            "◂ م3 : اوامر القفل - الفتح\n" 
-            "◂ م4 : اوامر التسليه\n" 
-            "◂ م5 : اوامر Dev\n" 
-            "━━━━━━━━━━━━",
-            reply_markup=reply_markup
-        )
+    await update.message.reply_text(
+        "أهلاً بك عزيزي في قائمة الاوامر :\n" 
+        "━━━━━━━━━━━━\n" 
+        "◂ م1 : اوامر الادمنيه\n" 
+        "◂ م2 : اوامر الاعدادات\n" 
+        "◂ م3 : اوامر القفل - الفتح\n" 
+        "◂ م4 : اوامر التسليه\n" 
+        "◂ م5 : اوامر Dev\n" 
+        "━━━━━━━━━━━━",
+        reply_markup=reply_markup
+    )
 
-        async def handle_command_query(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def handle_command_query(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         query = update.callback_query
         await query.answer()
         user_id = query.from_user.id
@@ -584,7 +584,7 @@ def seed_all_permissions_data():
 
         await query.edit_message_text(command_entry.content, reply_markup=reply_markup)
 
-        async def handle_text_commands(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def handle_text_commands(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         text = update.message.text.strip()
 
         if text.lower() == "اوامر":
@@ -641,8 +641,7 @@ def seed_all_permissions_data():
             f"الرتبة: {role_name}{is_owner}"
         )
 
-    async def get_other_rank(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        user_id = update.effective_user.id
+    async def get_other_rank(self, update: Updat        user_id = update.effective_user.id
 
         if not has_permission(user_id, "view_rank"):
             await update.message.reply_text("عذراً، ليس لديك الصلاحية لعرض الرتب.")
@@ -673,7 +672,7 @@ def seed_all_permissions_data():
             f"الاسم: {target_first_name or target_username}\n"
             f"المعرف: @{target_username or 'لا يوجد'}\n"
             f"الرتبة: {role_name}{is_owner}"
-        )
+        )xt: ContextTypes.DEFAULT_TYPE) -> None:
     async def error_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         logger.error(f"حدث خطأ: {context.error}", exc_info=context.error)
         if update and update.effective_message:
@@ -685,122 +684,122 @@ def seed_all_permissions_data():
 
     async def promote_user(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         user_id = update.effective_user.id
-        if not has_permission(user_id, "manage_ranks"):
-            await update.message.reply_text("عذراً، ليس لديك الصلاحية لترقية الرتب.")
+    if not has_permission(user_id, "manage_ranks"):
+        await update.message.reply_text("عذراً، ليس لديك الصلاحية لترقية الرتب.")
+        return
+
+    if not update.message.reply_to_message:
+        await update.message.reply_text("يرجى الرد على رسالة المستخدم الذي تريد ترقيته.")
+        return
+
+    target_user_id = update.message.reply_to_message.from_user.id
+    target_first_name = update.message.reply_to_message.from_user.first_name
+
+    if target_user_id == OWNER_USER_ID and user_id != OWNER_USER_ID:
+        await update.message.reply_text("لا يمكنك ترقية مالك البوت الأساسي.")
+        return
+
+    target_user = User.query.filter_by(telegram_id=target_user_id).first()
+    if not target_user:
+        await update.message.reply_text("المستخدم غير مسجل في البوت. يرجى الطلب منه التفاعل مع البوت أولاً.")
+        return
+
+    current_role_level = target_user.role.level if target_user.role else 1
+    next_role = get_role_by_level(current_role_level + 1)
+
+    if not next_role:
+        await update.message.reply_text(f"المستخدم {target_first_name} لديه أعلى رتبة ممكنة بالفعل.")
+        return
+    
+    # Prevent promoting above your own level unless you are the owner
+    if user_id != OWNER_USER_ID:
+        promoter_role = get_user_role(user_id)
+        if promoter_role.level <= next_role.level:
+            await update.message.reply_text("لا يمكنك ترقية مستخدم إلى رتبة أعلى من رتبتك أو مساوية لها.")
             return
 
-        if not update.message.reply_to_message:
-            await update.message.reply_text("يرجى الرد على رسالة المستخدم الذي تريد ترقيته.")
-            return
-
-        target_user_id = update.message.reply_to_message.from_user.id
-        target_first_name = update.message.reply_to_message.from_user.first_name
-
-        if target_user_id == OWNER_USER_ID and user_id != OWNER_USER_ID:
-            await update.message.reply_text("لا يمكنك ترقية مالك البوت الأساسي.")
-            return
-
-        target_user = User.query.filter_by(telegram_id=target_user_id).first()
-        if not target_user:
-            await update.message.reply_text("المستخدم غير مسجل في البوت. يرجى الطلب منه التفاعل مع البوت أولاً.")
-            return
-
-        current_role_level = target_user.role.level if target_user.role else 1
-        next_role = get_role_by_level(current_role_level + 1)
-
-        if not next_role:
-            await update.message.reply_text(f"المستخدم {target_first_name} لديه أعلى رتبة ممكنة بالفعل.")
-            return
-        
-        # Prevent promoting above your own level unless you are the owner
-        if user_id != OWNER_USER_ID:
-            promoter_role = get_user_role(user_id)
-            if promoter_role.level <= next_role.level:
-                await update.message.reply_text("لا يمكنك ترقية مستخدم إلى رتبة أعلى من رتبتك أو مساوية لها.")
-                return
-
-        target_user.role = next_role
-        db.session.commit()
-        await update.message.reply_text(f"تم ترقية {target_first_name} إلى رتبة {next_role.name} بنجاح.")
+    target_user.role = next_role
+    db.session.commit()
+    await update.message.reply_text(f"تم ترقية {target_first_name} إلى رتبة {next_role.name} بنجاح.")
 
     async def demote_user(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        user_id = update.effective_user.id
-        if not has_permission(user_id, "manage_ranks"):
-            await update.message.reply_text("عذراً، ليس لديك الصلاحية لتنزيل الرتب.")
+    user_id = update.effective_user.id
+    if not has_permission(user_id, "manage_ranks"):
+        await update.message.reply_text("عذراً، ليس لديك الصلاحية لتنزيل الرتب.")
+        return
+
+    if not update.message.reply_to_message:
+        await update.message.reply_text("يرجى الرد على رسالة المستخدم الذي تريد تنزيل رتبته.")
+        return
+
+    target_user_id = update.message.reply_to_message.from_user.id
+    target_first_name = update.message.reply_to_message.from_user.first_name
+
+    if target_user_id == OWNER_USER_ID and user_id != OWNER_USER_ID:
+        await update.message.reply_text("لا يمكنك تنزيل مالك البوت الأساسي.")
+        return
+
+    target_user = User.query.filter_by(telegram_id=target_user_id).first()
+    if not target_user:
+        await update.message.reply_text("المستخدم غير مسجل في البوت. يرجى الطلب منه التفاعل مع البوت أولاً.")
+        return
+
+    current_role_level = target_user.role.level if target_user.role else 1
+    previous_role = get_role_by_level(current_role_level - 1)
+
+    if not previous_role:
+        await update.message.reply_text(f"المستخدم {target_first_name} لديه أدنى رتبة ممكنة بالفعل.")
+        return
+
+    # Prevent demoting below your own level unless you are the owner
+    if user_id != OWNER_USER_ID:
+        demoter_role = get_user_role(user_id)
+        if demoter_role.level <= previous_role.level:
+            await update.message.reply_text("لا يمكنك تنزيل مستخدم إلى رتبة أدنى من رتبتك أو مساوية لها.")
             return
 
-        if not update.message.reply_to_message:
-            await update.message.reply_text("يرجى الرد على رسالة المستخدم الذي تريد تنزيل رتبته.")
-            return
-
-        target_user_id = update.message.reply_to_message.from_user.id
-        target_first_name = update.message.reply_to_message.from_user.first_name
-
-        if target_user_id == OWNER_USER_ID and user_id != OWNER_USER_ID:
-            await update.message.reply_text("لا يمكنك تنزيل مالك البوت الأساسي.")
-            return
-
-        target_user = User.query.filter_by(telegram_id=target_user_id).first()
-        if not target_user:
-            await update.message.reply_text("المستخدم غير مسجل في البوت. يرجى الطلب منه التفاعل مع البوت أولاً.")
-            return
-
-        current_role_level = target_user.role.level if target_user.role else 1
-        previous_role = get_role_by_level(current_role_level - 1)
-
-        if not previous_role:
-            await update.message.reply_text(f"المستخدم {target_first_name} لديه أدنى رتبة ممكنة بالفعل.")
-            return
-
-        # Prevent demoting below your own level unless you are the owner
-        if user_id != OWNER_USER_ID:
-            demoter_role = get_user_role(user_id)
-            if demoter_role.level <= previous_role.level:
-                await update.message.reply_text("لا يمكنك تنزيل مستخدم إلى رتبة أدنى من رتبتك أو مساوية لها.")
-                return
-
-        target_user.role = previous_role
-        db.session.commit()
-        await update.message.reply_text(f"تم تنزيل {target_first_name} إلى رتبة {previous_role.name} بنجاح.")
+    target_user.role = previous_role
+    db.session.commit()
+    await update.message.reply_text(f"تم تنزيل {target_first_name} إلى رتبة {previous_role.name} بنجاح.")
 
     async def set_role(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        user_id = update.effective_user.id
-        if not has_permission(user_id, "manage_ranks"):
-            await update.message.reply_text("عذراً، ليس لديك الصلاحية لتعيين الرتب.")
+    user_id = update.effective_user.id
+    if not has_permission(user_id, "manage_ranks"):
+        await update.message.reply_text("عذراً، ليس لديك الصلاحية لتعيين الرتب.")
+        return
+
+    if not update.message.reply_to_message or not context.args:
+        await update.message.reply_text("يرجى الرد على رسالة المستخدم وتحديد الرتبة الجديدة. مثال: /set_role Admin")
+        return
+
+    target_user_id = update.message.reply_to_message.from_user.id
+    target_first_name = update.message.reply_to_message.from_user.first_name
+    new_role_name = context.args[0].capitalize() # Capitalize first letter for role name
+
+    if target_user_id == OWNER_USER_ID and user_id != OWNER_USER_ID:
+        await update.message.reply_text("لا يمكنك تغيير رتبة مالك البوت الأساسي.")
+        return
+
+    target_user = User.query.filter_by(telegram_id=target_user_id).first()
+    if not target_user:
+        await update.message.reply_text("المستخدم غير مسجل في البوت. يرجى الطلب منه التفاعل مع البوت أولاً.")
+        return
+
+    new_role = get_role_by_name(new_role_name)
+    if not new_role:
+        await update.message.reply_text(f"الرتبة '{new_role_name}' غير موجودة. الرتب المتاحة: User, Special, Admin, Manager, Creator, Supervisor, Owner, Dev.")
+        return
+    
+    # Prevent setting role above your own level unless you are the owner
+    if user_id != OWNER_USER_ID:
+        setter_role = get_user_role(user_id)
+        if setter_role.level <= new_role.level and new_role.name != target_user.role.name:
+            await update.message.reply_text("لا يمكنك تعيين رتبة أعلى من رتبتك أو مساوية لها.")
             return
 
-        if not update.message.reply_to_message or not context.args:
-            await update.message.reply_text("يرجى الرد على رسالة المستخدم وتحديد الرتبة الجديدة. مثال: /set_role Admin")
-            return
-
-        target_user_id = update.message.reply_to_message.from_user.id
-        target_first_name = update.message.reply_to_message.from_user.first_name
-        new_role_name = context.args[0].capitalize() # Capitalize first letter for role name
-
-        if target_user_id == OWNER_USER_ID and user_id != OWNER_USER_ID:
-            await update.message.reply_text("لا يمكنك تغيير رتبة مالك البوت الأساسي.")
-            return
-
-        target_user = User.query.filter_by(telegram_id=target_user_id).first()
-        if not target_user:
-            await update.message.reply_text("المستخدم غير مسجل في البوت. يرجى الطلب منه التفاعل مع البوت أولاً.")
-            return
-
-        new_role = get_role_by_name(new_role_name)
-        if not new_role:
-            await update.message.reply_text(f"الرتبة \'{new_role_name}\' غير موجودة. الرتب المتاحة: User, Special, Admin, Manager, Creator, Supervisor, Owner, Dev.")
-            return
-        
-        # Prevent setting role above your own level unless you are the owner
-        if user_id != OWNER_USER_ID:
-            setter_role = get_user_role(user_id)
-            if setter_role.level <= new_role.level and new_role.name != target_user.role.name:
-                await update.message.reply_text("لا يمكنك تعيين رتبة أعلى من رتبتك أو مساوية لها.")
-                return
-
-        target_user.role = new_role
-        db.session.commit()
-        await update.message.reply_text(f"تم تعيين رتبة {new_role.name} للمستخدم {target_first_name} بنجاح.")
+    target_user.role = new_role
+    db.session.commit()
+    await update.message.reply_text(f"تم تعيين رتبة {new_role.name} للمستخدم {target_first_name} بنجاح.")
 
 # --- وظيفة تشغيل البوت ---
 
@@ -842,3 +841,4 @@ if __name__ == "__main__":
     # Initialize and run the bot
     bot = TelegramBot()
     bot.run()
+
