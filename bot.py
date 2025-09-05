@@ -10,7 +10,7 @@ import re
 load_dotenv()
 
 # إعدادات البوت (تم وضعها مباشرةً)
-BOT_TOKEN = "8069419306:AAEWY3K3kvanMqAKrQegyh9gKOHM_orFO20"
+BOT_TOKEN = "8069419306:AAFbTMN4BbQ2zIInV_ddJ_WO8jESmaDAsIA"
 OWNER_USER_ID = 5032833915
 SECRET_KEY = os.getenv("SECRET_KEY", "your_super_secret_key_here")
 
