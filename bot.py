@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 # إعدادات البوت (تم تضمينها مباشرة بناءً على طلبك)
 BOT_TOKEN = "8069419306:AAFbTMN4BbQ2zIInV_ddJ_WO8jESmaDAsIA"
 OWNER_USER_ID = 5032833915
-SECRET_KEY = "your_super_secret_key_here" # يمكنك تغيير هذا المفتاح السري
+SECRET_KEY = "my_king@6111abufahadp##@" # يمكنك تغيير هذا المفتاح السري
 
 # إعداد التسجيل (Logging)
 logging.basicConfig(
