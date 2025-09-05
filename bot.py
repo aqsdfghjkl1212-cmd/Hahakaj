@@ -12,9 +12,6 @@ load_dotenv()
 # Bot settings (hardcoded values for simplicity)
 BOT_TOKEN = "8069419306:AAFbTMN4BbQ2zIInV_ddJ_WO8jESmaDAsIA"
 OWNER_USER_ID = 5032833915
-# Note: The provided OWNER_USER_ID is a large number, which is unusual for a user ID.
-# If the bot doesn't work, this ID might be incorrect.
-# To find your actual user ID, you can use a bot like @userinfobot or @My_ID_bot in Telegram.
 SECRET_KEY = os.getenv("SECRET_KEY", "your_super_secret_key_here")
 
 # Configure logging
