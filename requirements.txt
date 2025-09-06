@@ -1,0 +1,6 @@
+Flask
+Flask-SQLAlchemy
+python-telegram-bot
+SQLAlchemy
+gunicorn
+psycopg2-binary
